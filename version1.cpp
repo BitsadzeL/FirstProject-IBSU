@@ -22,7 +22,7 @@ void timerpos(WINDOW* w, int movements){
 }
 
 
-//spawn asterisks on random positions
+//spawn asterisks on random positions at the start of the game
 vector<pair<int,int>> generate_asterisk(int numberOfLines, int numberOfColumns) {
     vector<pair<int,int>> coordinates;
     srand(time(0)); 
@@ -30,7 +30,7 @@ vector<pair<int,int>> generate_asterisk(int numberOfLines, int numberOfColumns) 
         int x = (rand() % (COLS - 3)) + 1;
         int y = (rand() % (LINES - 5)) + 1;
 
-        // Check if x and y match the given values, and generate new random values until they don't match
+        //Generate new random coordinates in case of being inside the obstacle
         while((y >= 1 && y <= 7 && (x >= 5 && x <= 9)) ||
                (y >= 8 && y <= 17 && (x >= 19 && x <= 23)) ||
                (y >= 17 && y <= 18 && (x >= 49 && x <= 53)) ||
@@ -53,10 +53,10 @@ vector<pair<int,int>> generate_asterisk(int numberOfLines, int numberOfColumns) 
 
 
 
-//after collecting, spawn a new one on random position
-void spawnAsterisk(WINDOW* win, int x_max, int y_max, std::vector<std::pair<int, int>>& asterisk_coords)
+//after collecting, spawn a new asterisk on random position
+void spawnAsterisk(WINDOW* win, int x_max, int y_max, vector<pair<int, int>>& asterisk_coords)
 {
-    // Generate new coordinates for the asterisk
+
         int new_x = (rand() % (COLS - 3)) + 1;
         int new_y = (rand() % (LINES - 5)) +1;
 
@@ -71,7 +71,7 @@ void spawnAsterisk(WINDOW* win, int x_max, int y_max, std::vector<std::pair<int,
             new_x = (rand() % (COLS - 3)) + 1;
             new_y = (rand() % (LINES - 5)) + 1;
         }
-    // Check if the new coordinates conflict with existing asterisks
+
     bool conflict = false;
     for (const auto& coord : asterisk_coords)
     {
@@ -84,7 +84,7 @@ void spawnAsterisk(WINDOW* win, int x_max, int y_max, std::vector<std::pair<int,
          
     }
 
-    // If there's a conflict, generate new coordinates until there's no conflict
+
     while (conflict)
     {
         new_x = rand() % x_max;
@@ -101,7 +101,7 @@ void spawnAsterisk(WINDOW* win, int x_max, int y_max, std::vector<std::pair<int,
         }
     }
 
-    asterisk_coords.push_back(std::make_pair(new_x, new_y));
+    asterisk_coords.push_back(make_pair(new_x, new_y));
 
     mvwprintw(win, new_y, new_x, "*");
     wrefresh(win);
@@ -113,7 +113,6 @@ class Stats{
         int hearts;
         int movements;
     public:
-        //Stats();
         Stats(int c, int h, int m){
             collected=c;
             hearts=h;
@@ -137,10 +136,10 @@ class Player{
         int y;
         int x;
     public:
-        //Player();
+
         Player(int a, int b){y=a;x=b;}
 
-	//Get info
+	//Get coordinates
         int getY(){return y;}
         int getX(){return x;}
 
@@ -206,13 +205,10 @@ class Game{
 
         void buildStats(){
             stat=subwin(mainwin,3,20,LINES-4,1);
-    	    
-
         }
 
         void buildTimer(){
             timer=subwin(mainwin,3,15,LINES-3,COLS-17);
-
         }
 
         int checkKey(int a){
@@ -222,17 +218,25 @@ class Game{
             }
             else{c=0;}
             return c;
+        }
 
+        void colors(){
+            start_color();
+            init_pair(MAIN_COLOR, COLOR_YELLOW, COLOR_YELLOW);
+            init_pair(REV_COLOR,COLOR_YELLOW,COLOR_BLACK);
+            init_pair(BOTTOM_COLOR,COLOR_RED,COLOR_BLACK);
+            init_pair(OBSCATLE_COLOR,COLOR_BLUE,COLOR_BLUE);
+            init_pair(DIALOGUE_COLOR,COLOR_BLACK,COLOR_BLACK);            
         }
 
 
-
-        Game(){
+        void gameplay(){
             int key;
-            Stats s(0,18,0);
+            Stats s(0,3,0);
             Player p(10,18);
             string C = "*", C_wh;
             mainwin = initscr(); 
+            colors();
             buildStats();
             buildTimer();
             buildObstacles();
@@ -241,14 +245,9 @@ class Game{
             for(int i=0; i < C.size(); i++) C_wh += " ";
             keypad(mainwin, true);
             curs_set(0);
-		    noecho();
+	    noecho();
 
-            start_color();
-            init_pair(MAIN_COLOR, COLOR_YELLOW, COLOR_YELLOW);
-            init_pair(REV_COLOR,COLOR_YELLOW,COLOR_BLACK);
-            init_pair(BOTTOM_COLOR,COLOR_RED,COLOR_BLACK);
-            init_pair(OBSCATLE_COLOR,COLOR_BLUE,COLOR_BLUE);
-            init_pair(DIALOGUE_COLOR,COLOR_BLACK,COLOR_BLACK);
+
 
             wattron(mainwin,COLOR_PAIR(MAIN_COLOR));
             mvwprintw(mainwin,p.getY(),p.getX(),"%s",C.c_str());
@@ -257,7 +256,8 @@ class Game{
             wattron(timer,COLOR_PAIR(BOTTOM_COLOR));
             wattron(stat,COLOR_PAIR(BOTTOM_COLOR));
             wrefresh(stat);
-            wrefresh(timer);         
+            wrefresh(timer);     
+
         	//spawn red asterisks
             wattron(mainwin,COLOR_PAIR(BOTTOM_COLOR));
             vector<pair<int,int>> asterisk_coords = generate_asterisk(LINES,COLS);
@@ -275,7 +275,7 @@ class Game{
             wrefresh(mainwin);       
 
 
-            while ( 1 ) // MAIN LOOP
+            while ( 1 ) 
             {
                 key = wgetch(mainwin); 
 
@@ -283,7 +283,7 @@ class Game{
                 wattron(mainwin,COLOR_PAIR(REV_COLOR));
                 mvwprintw(mainwin,p.getY(),p.getX(),"%s",C_wh.c_str());
 
-            //CHECK MOVEMENT
+            //Check input 
                 if (key==KEY_LEFT || key=='a') {p.goLeft();}
                 else if (key==KEY_RIGHT || key=='d') {p.goRight();}       
                 else if (key==KEY_UP || key=='w') {p.goUp();}       
@@ -291,43 +291,45 @@ class Game{
                 else if (key == 'q'){break;}
 
             
-            // CHECK IF PLAYER HIT BORDERS
+            //Chek if player hit borders
                 if(p.getY()==0){p.bounceDown();s.damage();}
                 else if(p.getY()==LINES-3){p.bounceUp();s.damage();}
                 else if(p.getX()==0){p.bounceRight();s.damage();}
                 else if(p.getX()==COLS-1){p.bounceLeft();s.damage();}
 
             
-                else if(p.getY()>=1 && p.getY()<=7 && p.getX()==6){p.hitObscLeft();s.damage();} //1-lis marcxena
-                else if(p.getY()>=1 && p.getY()<=7 && p.getX()==7){p.hitObscRight();s.damage();} // 1-lis marjvena
+                else if(p.getY()>=1 && p.getY()<=7 && p.getX()==6){p.hitObscLeft();s.damage();} 
+                else if(p.getY()>=1 && p.getY()<=7 && p.getX()==7){p.hitObscRight();s.damage();}
 
-                else if(p.getY()>=8 && p.getY()<=17 && p.getX()==20){p.hitObscLeft();s.damage();}  // me2es marcxena
-                else if(p.getY()>=8 && p.getY()<=17 && p.getX()==21){p.hitObscRight();s.damage();}  // me2es marjvena
+                else if(p.getY()>=8 && p.getY()<=17 && p.getX()==20){p.hitObscLeft();s.damage();}
+                else if(p.getY()>=8 && p.getY()<=17 && p.getX()==21){p.hitObscRight();s.damage();}
 
-                else if(p.getY()>=17 && p.getY()<=18 && p.getX()==50){p.hitObscLeft(); s.damage();}  // me3es marcxena
-                else if(p.getY()>=17 && p.getY()<=18 && p.getX()==51){p.hitObscRight(); s.damage();}  // me3es marjvena  
+                else if(p.getY()>=17 && p.getY()<=18 && p.getX()==50){p.hitObscLeft(); s.damage();}
+                else if(p.getY()>=17 && p.getY()<=18 && p.getX()==51){p.hitObscRight(); s.damage();}
 
-                else if(p.getY()>=25 && p.getY()<=30 && p.getX()==70){p.hitObscLeft(); s.damage();}  // me4es marcxena
-                else if(p.getY()>=25 && p.getY()<=30 && p.getX()==71){p.hitObscRight(); s.damage();}  // me4es marjvena 
+                else if(p.getY()>=25 && p.getY()<=30 && p.getX()==70){p.hitObscLeft(); s.damage();} 
+                else if(p.getY()>=25 && p.getY()<=30 && p.getX()==71){p.hitObscRight(); s.damage();} 
 
-                else if(p.getY()>=10 && p.getY()<=21 && p.getX()==90){p.hitObscLeft(); s.damage();}  // me5es marcxena
-                else if(p.getY()>=10 && p.getY()<=21 && p.getX()==91){p.hitObscRight(); s.damage();}  // me5es marjvena         
+                else if(p.getY()>=10 && p.getY()<=21 && p.getX()==90){p.hitObscLeft(); s.damage();} 
+                else if(p.getY()>=10 && p.getY()<=21 && p.getX()==91){p.hitObscRight(); s.damage();}  
 
-                else if(p.getY()>=8 && p.getY()<=27 && p.getX()==110){p.hitObscLeft(); s.damage();}  // me6es marcxena
-                else if(p.getY()>=8 && p.getY()<=27 && p.getX()==111){p.hitObscRight(); s.damage();}  // me6es marjvena
+                else if(p.getY()>=8 && p.getY()<=27 && p.getX()==110){p.hitObscLeft(); s.damage();}  
+                else if(p.getY()>=8 && p.getY()<=27 && p.getX()==111){p.hitObscRight(); s.damage();} 
 
-                else if(p.getY()>=4 && p.getY()<=25 && p.getX()==130){p.hitObscLeft(); s.damage();}  // me7es marcxena
-                else if(p.getY()>=4 && p.getY()<=25 && p.getX()==131){p.hitObscRight(); s.damage();}  // me7es marjvena
-
-
-                else if(p.getY()>=18 && p.getY()<=34 && p.getX()==150){p.hitObscLeft(); s.damage();}  // me8es marcxena
-                else if(p.getY()>=18 && p.getY()<=34 && p.getX()==151){p.hitObscRight(); s.damage();}  // me8es marjvena
+                else if(p.getY()>=4 && p.getY()<=25 && p.getX()==130){p.hitObscLeft(); s.damage();}  
+                else if(p.getY()>=4 && p.getY()<=25 && p.getX()==131){p.hitObscRight(); s.damage();} 
 
 
+                else if(p.getY()>=18 && p.getY()<=34 && p.getX()==150){p.hitObscLeft(); s.damage();}  
+                else if(p.getY()>=18 && p.getY()<=34 && p.getX()==151){p.hitObscRight(); s.damage();}  
 
-            
-                if(s.getHearts()==0 || s.getMovements()==999){break;}        
 
+
+                //Game break condition
+                if(s.getHearts()==0 || s.getMovements()==300){break;}       
+
+
+                //Payer collected , so delete it and add a new one
                 for (auto it = asterisk_coords.begin(); it != asterisk_coords.end();)
                 {
                         if (p.getX() == it->first && p.getY() == it->second) 
@@ -356,6 +358,8 @@ class Game{
             }
 
             delwin(mainwin);
+
+            
             // Create dialogue subwindow
             WINDOW* newmainwin = newwin(LINES, COLS, 0, 0);
             curs_set(0);
@@ -389,17 +393,18 @@ class Game{
                 
                 int a = wgetch(newmainwin); // Wait for key pressed
                 if (a == 'o') {
-                    delwin(newmainwin); // Close the window
-                    break; // Exit the loop
+                    delwin(newmainwin); 
+                    break; 
                 } else {
-                    wrefresh(newmainwin); // Refresh mainwin to clear the previous text
-                    //werase(newmainwin);
-                    wrefresh(dialogue); // Refresh dialogue subwindow to show the updated text
+                    wrefresh(newmainwin); 
+                    wrefresh(dialogue); 
                 }
             }  
         };
 
-
+        Game(){
+            gameplay();
+        }
         ~Game(){
             endwin();      
             delwin(mainwin);
@@ -412,7 +417,4 @@ int main()
 {
     Game game;
     return EXIT_SUCCESS;
-    
 }
-
-
