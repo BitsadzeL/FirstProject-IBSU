@@ -23,7 +23,7 @@ void timerpos(WINDOW* w, int movements){
 
 
 //spawn asterisks on random positions at the start of the game
-vector<pair<int,int>> generate_asterisk(int numberOfLines, int numberOfColumns) {
+vector<pair<int,int>> spawnasterisks(int numberOfLines, int numberOfColumns) {
     vector<pair<int,int>> coordinates;
     srand(time(0)); 
     while(coordinates.size() < 500) {
@@ -260,7 +260,7 @@ class Game{
 
         	//spawn red asterisks
             wattron(mainwin,COLOR_PAIR(BOTTOM_COLOR));
-            vector<pair<int,int>> asterisk_coords = generate_asterisk(LINES,COLS);
+            vector<pair<int,int>> asterisk_coords = spawnasterisks(LINES,COLS);
             for(const auto& coord : asterisk_coords) {
                     mvwprintw(mainwin, coord.second, coord.first, "%s", C.c_str());
             }
